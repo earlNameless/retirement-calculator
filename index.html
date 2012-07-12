@@ -8,6 +8,109 @@
 	<link rel="stylesheet" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.1/css/jquery.dataTables.css" type="text/css"></link>
 </head>
 <body>
+	<script language="javascript">
+		$(function() {
+			// setup elements
+			$( "#process" ).button();
 
+			// setup event handlers
+			$( "#process" ).click(function() {
+				var ageCurrent = parseInt( $( "#age_current" ).val() );
+				var ageRetirement = parseInt( $( "#age_retirement" ).val() );
+				var ageDeath = parseInt( $( "#age_death" ).val() );
+
+				var cost_retirement = parseFloat( $( "#cost_retirement_month" ).val() ) * 12.0;
+				var cost_death = parseFloat( $( "#cost_death" ).val() );
+
+				var rate_inflation = parseFloat( $( "#rate_inflation" ).val() ) / 100.0;
+				var rate_capital = parseFloat( $( "#rate_capital" ).val() ) / 100.0;
+
+				var salary = parseFloat( $( "#salary" ).val() );
+				var rate_salary = parseFloat( $( "#rate_salary" ).val() ) / 100.0;
+				var salary_contribution = parseFloat( $( "#rate_contribution" ).val() ) / 100.0;
+
+				// compute years
+				var yearCurrent = new Date().getFullYear();
+				var yearRetirement = yearCurrent + (ageRetirement - ageCurrent);
+				var yearDeath = yearCurrent + (ageDeath - ageCurrent);
+
+				var data = new Array();
+
+				// do math about retirement
+				for (year = yearDeath; year >= yearRetirement; year--) {
+					var total_inflation_growth = Math.pow(1.0 + rate_inflation, year - yearCurrent);
+					var yearSpending = cost_retirement * total_inflation_growth;
+					var endOfYear = year == yearDeath ?
+						cost_death * total_inflation_growth :
+						data[year + 1].start * (1.0 - rate_capital);
+					var startOfYear = endOfYear + yearSpending;
+
+					data[year] = {
+						change: yearSpending,
+						end: endOfYear,
+						start: startOfYear,
+					};
+				}
+
+				// do math about work
+				for (year = yearRetirement - 1; year >= yearCurrent; year--) {
+					var total_salary_growth = Math.pow(1.0 + rate_salary, year - yearCurrent);
+					var contribution = salary * total_salary_growth * salary_contribution;
+					var endOfYear = year == yearRetirement-1 ?
+						data[yearRetirement].end :
+						data[year + 1].start * (1.0 - rate_capital);
+					var startOfYear = endOfYear - contribution;
+
+					data[year] = {
+						change: contribution,
+						end: endOfYear,
+						start: startOfYear,
+					};
+				}
+
+				// convert data to be display in table
+				var dataTable = new Array();
+				for (year = yearCurrent; year <= yearDeath; year++) {
+					dataTable[year - yearCurrent] = [
+						year,
+						data[year].start.toFixed(2),
+						data[year].change.toFixed(2),
+						data[year].end.toFixed(2),
+					];
+				}
+				$( "#output" ).empty().append( "<table id='outputTable'/>" );
+				$( "#outputTable" ).dataTable( {
+					"aaData": dataTable,
+					"aoColumns": [
+						{ "sTitle": "Year" },
+						{ "sTitle": "Start" },
+						{ "sTitle": "Change" },
+						{ "sTitle": "End" },
+					],
+				} );
+
+				return false; 
+			});
+		});
+	</script>
+	<div id="inputs">
+		<ul>
+			<li>Current Age: <input type="text" id="age_current" value="30"/></li>
+			<li>Retirement Age: <input type="text" id="age_retirement" value="70"/></li>
+			<li>Death Age: <input type="text" id="age_death" value="90"/></li>
+			<li>Spending per month during retirement (today's money): <input type="text" id="cost_retirement_month" value="2000.00"/></li>
+			<li>Left at death (today's money): <input type="text" id="cost_death" value="50000.00"/></li>
+			<li>Inflation rate, %: <input type="text" id="rate_inflation" value="3.5"/></li>
+			<li>Capital growth rate, %: <input type="text" id="rate_capital" value="5.0"/></li>
+			<li>Salary (today's money): <input type="text" id="salary" value="60000"/></li>
+			<li>Salary growth rate, %: <input type="text" id="rate_salary" value="3.5"/></li>
+			<li>Contribution, %: <input type="text" id="rate_contribution" value="10"/></li>
+		</ul>
+	</div>
+	<div id="processor">
+		<a id="process" href="#">Process</a>
+	</div>
+	<div id="output">
+	</div>
 </body>
 </html>
