@@ -61,9 +61,7 @@
 				for (year = yearRetirement - 1; year >= yearCurrent; year--) {
 					var total_salary_growth = Math.pow(1.0 + rate_salary, year - yearCurrent);
 					var contribution = salary * total_salary_growth * salary_contribution;
-					var endOfYear = year == yearRetirement-1 ?
-						data[yearRetirement].end :
-						data[year + 1].start / (1.0 + rate_capital);
+					var endOfYear =	data[year + 1].start / (1.0 + rate_capital);
 					var startOfYear = endOfYear - contribution;
 
 					data[year] = {
