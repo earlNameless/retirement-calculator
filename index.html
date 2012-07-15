@@ -14,11 +14,10 @@
 </head>
 <body>
 	<script language="javascript">
-		$(function() {
+		$(document).ready(function() {
 			// setup elements
 			$( "#process" ).button();
 
-			// setup event handlers
 			$( "#process" ).click(function() {
 				var ageCurrent = parseInt( $( "#age_current" ).val() );
 				var ageRetirement = parseInt( $( "#age_retirement" ).val() );
@@ -97,21 +96,51 @@
 		});
 	</script>
 	<div id="inputs">
-		<ul>
-			<li>Current Age: <input type="text" id="age_current" value="37"/></li>
-			<li>Retirement Age: <input type="text" id="age_retirement" value="63"/></li>
-			<li>Death Age: <input type="text" id="age_death" value="78"/></li>
-			<li>Spending per month during retirement (today's money): <input type="text" id="cost_retirement_month" value="4000.00"/></li>
-			<li>Left at death (today's money): <input type="text" id="cost_death" value="20000.00"/></li>
-			<li>Inflation rate, %: <input type="text" id="rate_inflation" value="4.4"/></li>
-			<li>Capital growth rate, %: <input type="text" id="rate_capital" value="6.8"/></li>
-			<li>Salary (today's money): <input type="text" id="salary" value="50000"/></li>
-			<li>Salary growth rate, %: <input type="text" id="rate_salary" value="4.4"/></li>
-			<li>Contribution, %: <input type="text" id="rate_contribution" value="6.8"/></li>
-		</ul>
-	</div>
-	<div id="processor">
-		<a id="process" href="#">Process</a>
+		<form id="processForm" action=""><fieldset>
+		<p>
+			<label for="age_current">Current Age:</label>
+			<input type="text" id="age_current" value="37" class="required number"/>
+		</p>
+		<p>
+			<label for="age_retirement">Retirement Age:</label>
+			<input type="text" id="age_retirement" value="63" class="required number"/>
+		</p>
+		<p>
+			<label for="age_death">Death Age:</label>
+			<input type="text" id="age_death" value="78" class="required number"/>
+		</p>
+		<p>
+			<label for="cost_retirement_month">Spending per month during retirement (today's money):</label>
+			<input type="text" id="cost_retirement_month" value="4000.00" class="required number"/>
+		</p>
+		<p>
+			<label for="cost_death">Left at death (today's money):</label>
+			<input type="text" id="cost_death" value="20000.00" class="required number"/>
+		</p>
+		<p>
+			<label for="rate_inflation">Inflation rate, %:</label>
+			<input type="text" id="rate_inflation" value="4.4" class="requird number"/>
+		</p>
+		<p>
+			<label for="rate_capital">Capital growth rate, %:</label>
+			<input type="text" id="rate_capital" value="6.8" class="required number"/>
+		</p>
+		<p>
+			<label>Salary (today's money):</label>
+			<input type="text" id="salary" value="50000" class="required number"/>
+		</p>
+		<p>
+			<label>Salary growth rate, %:</label>
+			<input type="text" id="rate_salary" value="4.4" class="required number"/>
+		</p>
+		<p>
+			<label>Contribution, %:</label>
+			<input type="text" id="rate_contribution" value="6.8" class="required number"/>
+		</p>
+		<p>
+			<input type="submit" id="process" value="Process"/>
+		</p>
+		</fieldset></form>
 	</div>
 	<div id="output">
 	</div>
