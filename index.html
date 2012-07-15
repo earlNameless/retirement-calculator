@@ -8,6 +8,7 @@
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
 	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js"></script>
 	<script src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.1/jquery.dataTables.min.js"></script>
+	<script type="text/javascript" src="http://jzaefferer.github.com/jquery-validation/jquery.validate.js"></script>
 
 	<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/themes/base/jquery-ui.css" type="text/css"></link>
 	<link rel="stylesheet" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.1/css/jquery.dataTables.css" type="text/css"></link>
@@ -15,130 +16,134 @@
 <body>
 	<script language="javascript">
 		$(document).ready(function() {
-			// setup elements
-			$( "#process" ).button();
+			jQuery.validator.addMethod("integer", function(value, element) {
+				return this.optional(element) || /^[0-9]+$/.test(value);
+			}, "Please specify an integer value.");
 
-			$( "#process" ).click(function() {
-				var ageCurrent = parseInt( $( "#age_current" ).val() );
-				var ageRetirement = parseInt( $( "#age_retirement" ).val() );
-				var ageDeath = parseInt( $( "#age_death" ).val() );
+			$( "#processForm" ).validate({
+				submitHandler: function(form) {
+					var ageCurrent = parseInt( $( "#age_current" ).val() );
+					var ageRetirement = parseInt( $( "#age_retirement" ).val() );
+					var ageDeath = parseInt( $( "#age_death" ).val() );
 
-				var cost_retirement = parseFloat( $( "#cost_retirement_month" ).val() ) * 12.0;
-				var cost_death = parseFloat( $( "#cost_death" ).val() );
+					var cost_retirement = parseFloat( $( "#cost_retirement_month" ).val() ) * 12.0;
+					var cost_death = parseFloat( $( "#cost_death" ).val() );
 
-				var rate_inflation = parseFloat( $( "#rate_inflation" ).val() ) / 100.0;
-				var rate_capital = parseFloat( $( "#rate_capital" ).val() ) / 100.0;
+					var rate_inflation = parseFloat( $( "#rate_inflation" ).val() ) / 100.0;
+					var rate_capital = parseFloat( $( "#rate_capital" ).val() ) / 100.0;
 
-				var salary = parseFloat( $( "#salary" ).val() );
-				var rate_salary = parseFloat( $( "#rate_salary" ).val() ) / 100.0;
-				var salary_contribution = parseFloat( $( "#rate_contribution" ).val() ) / 100.0;
+					var salary = parseFloat( $( "#salary" ).val() );
+					var rate_salary = parseFloat( $( "#rate_salary" ).val() ) / 100.0;
+					var salary_contribution = parseFloat( $( "#rate_contribution" ).val() ) / 100.0;
 
-				// compute years
-				var yearCurrent = new Date().getFullYear();
-				var yearRetirement = yearCurrent + (ageRetirement - ageCurrent);
-				var yearDeath = yearCurrent + (ageDeath - ageCurrent);
+					// compute years
+					var yearCurrent = new Date().getFullYear();
+					var yearRetirement = yearCurrent + (ageRetirement - ageCurrent);
+					var yearDeath = yearCurrent + (ageDeath - ageCurrent);
 
-				var data = new Array();
+					var data = new Array();
 
-				// do math about retirement
-				for (year = yearDeath; year >= yearRetirement; year--) {
-					var total_inflation_growth = Math.pow(1.0 + rate_inflation, year - yearCurrent);
-					var yearSpending = cost_retirement * total_inflation_growth;
-					var endOfYear = year == yearDeath ?
-						cost_death * total_inflation_growth :
-						data[year + 1].start / (1.0 + rate_capital);
-					var startOfYear = endOfYear + yearSpending;
+					// do math about retirement
+					for (year = yearDeath; year >= yearRetirement; year--) {
+						var total_inflation_growth = Math.pow(1.0 + rate_inflation, year - yearCurrent);
+						var yearSpending = cost_retirement * total_inflation_growth;
+						var endOfYear = year == yearDeath ?
+							cost_death * total_inflation_growth :
+							data[year + 1].start / (1.0 + rate_capital);
+						var startOfYear = endOfYear + yearSpending;
 
-					data[year] = {
-						change: -yearSpending,
-						end: endOfYear,
-						start: startOfYear,
-					};
-				}
+						data[year] = {
+							change: -yearSpending,
+							end: endOfYear,
+							start: startOfYear,
+						};
+					}
 
-				// do math about work
-				for (year = yearRetirement - 1; year >= yearCurrent; year--) {
-					var total_salary_growth = Math.pow(1.0 + rate_salary, year - yearCurrent);
-					var contribution = salary * total_salary_growth * salary_contribution;
-					var endOfYear =	data[year + 1].start / (1.0 + rate_capital);
-					var startOfYear = endOfYear - contribution;
+					// do math about work
+					for (year = yearRetirement - 1; year >= yearCurrent; year--) {
+						var total_salary_growth = Math.pow(1.0 + rate_salary, year - yearCurrent);
+						var contribution = salary * total_salary_growth * salary_contribution;
+						var endOfYear =	data[year + 1].start / (1.0 + rate_capital);
+						var startOfYear = endOfYear - contribution;
 
-					data[year] = {
-						change: contribution,
-						end: endOfYear,
-						start: startOfYear,
-					};
-				}
+						data[year] = {
+							change: contribution,
+							end: endOfYear,
+							start: startOfYear,
+						};
+					}
 
-				// convert data to be display in table
-				var dataTable = new Array();
-				for (year = yearCurrent; year <= yearDeath; year++) {
-					dataTable[year - yearCurrent] = [
-						year,
-						data[year].start.toFixed(2),
-						data[year].change.toFixed(2),
-						data[year].end.toFixed(2),
-					];
-				}
-				$( "#output" ).empty().append( "<table id='outputTable'/>" );
-				$( "#outputTable" ).dataTable( {
-					"aaData": dataTable,
-					"aoColumns": [
-						{ "sTitle": "Year" },
-						{ "sTitle": "Start" },
-						{ "sTitle": "Change" },
-						{ "sTitle": "End" },
-					],
-				} );
+					// convert data to be display in table
+					var dataTable = new Array();
+					for (year = yearCurrent; year <= yearDeath; year++) {
+						dataTable[year - yearCurrent] = [
+							year,
+							data[year].start.toFixed(2),
+							data[year].change.toFixed(2),
+							data[year].end.toFixed(2),
+						];
+					}
+					$( "#output" ).empty().append( "<table id='outputTable'/>" );
+					$( "#outputTable" ).dataTable( {
+						"aaData": dataTable,
+						"aoColumns": [
+							{ "sTitle": "Year" },
+							{ "sTitle": "Start" },
+							{ "sTitle": "Change" },
+							{ "sTitle": "End" },
+						],
+					} );
+				},
 			});
 		});
 	</script>
 	<div id="inputs">
-		<!--<form id="processForm"><fieldset>-->
+		<form id="processForm"><fieldset>
 		<p>
 			<label for="age_current">Current Age:</label>
-			<input type="text" id="age_current" value="37" class="required number"/>
+			<input type="text" name="age_current" id="age_current" value="37" class="required number integer"/>
 		</p>
 		<p>
 			<label for="age_retirement">Retirement Age:</label>
-			<input type="text" id="age_retirement" value="63" class="required number"/>
+			<input type="text" name="age_retirement" id="age_retirement" value="63" class="required number integer"/>
 		</p>
 		<p>
 			<label for="age_death">Death Age:</label>
-			<input type="text" id="age_death" value="78" class="required number"/>
+			<input type="text" name="age_death" id="age_death" value="78" class="required number integer"/>
 		</p>
 		<p>
 			<label for="cost_retirement_month">Spending per month during retirement (today's money):</label>
-			<input type="text" id="cost_retirement_month" value="4000.00" class="required number"/>
+			<input type="text" name="cost_retirement_month" id="cost_retirement_month" value="4000.00" class="required number"/>
 		</p>
 		<p>
 			<label for="cost_death">Left at death (today's money):</label>
-			<input type="text" id="cost_death" value="20000.00" class="required number"/>
+			<input type="text" name="cost_death" id="cost_death" value="20000.00" class="required number"/>
 		</p>
 		<p>
 			<label for="rate_inflation">Inflation rate, %:</label>
-			<input type="text" id="rate_inflation" value="4.4" class="requird number"/>
+			<input type="text" name="rate_inflation" id="rate_inflation" value="4.4" class="requird number"/>
 		</p>
 		<p>
 			<label for="rate_capital">Capital growth rate, %:</label>
-			<input type="text" id="rate_capital" value="6.8" class="required number"/>
+			<input type="text" name="rate_capital" id="rate_capital" value="6.8" class="required number"/>
 		</p>
 		<p>
 			<label>Salary (today's money):</label>
-			<input type="text" id="salary" value="50000" class="required number"/>
+			<input type="text" name="salary" id="salary" value="50000" class="required number"/>
 		</p>
 		<p>
 			<label>Salary growth rate, %:</label>
-			<input type="text" id="rate_salary" value="4.4" class="required number"/>
+			<input type="text" name="rate_salary" id="rate_salary" value="4.4" class="required number"/>
 		</p>
 		<p>
 			<label>Contribution, %:</label>
-			<input type="text" id="rate_contribution" value="6.8" class="required number"/>
+			<input type="text" name="rate_contribution" id="rate_contribution" value="6.8" class="required number"/>
 		</p>
 		<p>
-			<input type="submit" id="process" value="Process"/>
+			<button type="submit">Process</button>
+			<!--<input type="submit" id="process" value="Process"/>-->
 		</p>
-		<!--</fieldset></form>-->
+		</fieldset></form>
 	</div>
 	<div id="output">
 	</div>
