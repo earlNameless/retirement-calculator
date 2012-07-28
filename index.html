@@ -16,104 +16,117 @@
 <body>
 	<script language="javascript">
 		function displayData(data, startYear, endYear) {
-			// convert data to be display in table
-			var dataTable = new Array();
-			for (year = startYear; year <= endYear; year++) {
+			"use strict";
+			var year,
+			    dataTable = [];
+			for (year = startYear; year <= endYear; year += 1) {
 				dataTable[year - startYear] = [
 					year,
 					data[year].start.toFixed(2),
 					data[year].change.toFixed(2),
-					data[year].end.toFixed(2),
+					data[year].end.toFixed(2)
 				];
 			}
-			$( "#output" ).empty().append( "<table id='outputTable'/>" );
-			$( "#outputTable" ).dataTable( {
+			$("#output").empty().append("<table id='outputTable'/>");
+			$("#outputTable").dataTable({
 				"aaData": dataTable,
 				"aoColumns": [
 					{ "sTitle": "Year" },
 					{ "sTitle": "Start" },
 					{ "sTitle": "Change" },
-					{ "sTitle": "End" },
-				],
-			} );
+					{ "sTitle": "End" }
+				]
+			});
 		}
 
 		function computeRetirement(data, yearCurrent, yearRetirement, yearDeath, rate_inflation, rate_capital, cost_retirement, cost_death) {
-			// do math about retirement
-			for (year = yearDeath; year >= yearRetirement; year--) {
-				var total_inflation_growth = Math.pow(1.0 + rate_inflation, year - yearCurrent);
-				var yearSpending = cost_retirement * total_inflation_growth;
-				var endOfYear = year == yearDeath ?
-					cost_death * total_inflation_growth :
-					data[year + 1].start / (1.0 + rate_capital);
-				var startOfYear = endOfYear + yearSpending;
+			"use strict";
+			var year;
+			for (year = yearDeath; year >= yearRetirement; year -= 1) {
+				var total_inflation_growth = Math.pow(1.0 + rate_inflation, year - yearCurrent),
+				    yearSpending = cost_retirement * total_inflation_growth,
+				    endOfYear = year === yearDeath ? cost_death * total_inflation_growth : data[year + 1].start / (1.0 + rate_capital),
+				    startOfYear = endOfYear + yearSpending;
 
 				data[year] = {
 					change: -yearSpending,
 					end: endOfYear,
-					start: startOfYear,
+					start: startOfYear
 				};
 			}
 			return data;
 		}
 
 		function computeWork(data, yearCurrent, yearRetirement, rate_salary, rate_capital, salary, salary_contribution) {
-			// do math about work
-			for (year = yearRetirement - 1; year >= yearCurrent; year--) {
-				var total_salary_growth = Math.pow(1.0 + rate_salary, year - yearCurrent);
-				var contribution = salary * total_salary_growth * salary_contribution;
-				var endOfYear =	data[year + 1].start / (1.0 + rate_capital);
-				var startOfYear = endOfYear - contribution;
+			"use strict";
+			var year;
+			for (year = yearRetirement - 1; year >= yearCurrent; year -= 1) {
+				var total_salary_growth = Math.pow(1.0 + rate_salary, year - yearCurrent),
+				    contribution = salary * total_salary_growth * salary_contribution,
+				    endOfYear = data[year + 1].start / (1.0 + rate_capital),
+				    startOfYear = endOfYear - contribution;
 
 				data[year] = {
 					change: contribution,
 					end: endOfYear,
-					start: startOfYear,
+					start: startOfYear
 				};
 			}
 			return data;
 		}
 
-		$(document).ready(function() {
-			jQuery.validator.addMethod("integer", function(value, element) {
+		$(document).ready(function () {
+			"use strict";
+
+			jQuery.validator.addMethod("integer", function (value, element) {
 				return this.optional(element) || /^[0-9]+$/.test(value);
 			}, "Please specify an integer value.");
 
-			$( "#processForm" ).validate({
-				submitHandler: function(form) {
-					var ageCurrent = parseInt( $( "#age_current" ).val() );
-					var ageRetirement = parseInt( $( "#age_retirement" ).val() );
-					var ageDeath = parseInt( $( "#age_death" ).val() );
+			$("#processForm").validate({
+				submitHandler: function (form) {
+					var ageCurrent = parseInt($("#age_current").val(), 10),
+					    ageRetirement = parseInt($("#age_retirement").val(), 10),
+					    ageDeath = parseInt($("#age_death").val(), 10),
 
-					var cost_retirement = parseFloat( $( "#cost_retirement_month" ).val() ) * 12.0;
-					var cost_death = parseFloat( $( "#cost_death" ).val() );
+					    cost_retirement = parseFloat($("#cost_retirement_month").val(), 10) * 12.0,
+					    cost_death = parseFloat($("#cost_death").val(), 10),
 
-					var rate_inflation = parseFloat( $( "#rate_inflation" ).val() ) / 100.0;
-					var rate_capital = parseFloat( $( "#rate_capital" ).val() ) / 100.0;
+					    rate_inflation = parseFloat($("#rate_inflation").val(), 10) / 100.0,
+					    rate_capital = parseFloat($("#rate_capital").val(), 10) / 100.0,
 
-					var salary = parseFloat( $( "#salary" ).val() );
-					var rate_salary = parseFloat( $( "#rate_salary" ).val() ) / 100.0;
-					var salary_contribution = parseFloat( $( "#rate_contribution" ).val() ) / 100.0;
+					    salary = parseFloat($("#salary").val(), 10),
+					    rate_salary = parseFloat($("#rate_salary").val(), 10) / 100.0,
+					    salary_contribution = parseFloat($("#rate_contribution").val(), 10) / 100.0,
 
-					// compute years
-					var yearCurrent = new Date().getFullYear();
-					var yearRetirement = yearCurrent + (ageRetirement - ageCurrent);
-					var yearDeath = yearCurrent + (ageDeath - ageCurrent);
+					    // compute years
+					    yearCurrent = new Date().getFullYear(),
+					    yearRetirement = yearCurrent + (ageRetirement - ageCurrent),
+					    yearDeath = yearCurrent + (ageDeath - ageCurrent),
 
-					var data = new Array();
+					    data = [];
+
 					data = computeRetirement(
 						data,
-						yearCurrent, yearRetirement, yearDeath,
-						rate_inflation, rate_capital,
-						cost_retirement, cost_death);
+						yearCurrent,
+						yearRetirement,
+						yearDeath,
+						rate_inflation,
+						rate_capital,
+						cost_retirement,
+						cost_death
+					);
 					data = computeWork(
 						data,
-						yearCurrent, yearRetirement,
-						rate_salary, rate_capital,
-						salary, salary_contribution);
+						yearCurrent,
+						yearRetirement,
+						rate_salary,
+						rate_capital,
+						salary,
+						salary_contribution
+					);
 
 					displayData(data, yearCurrent, yearDeath);
-				},
+				}
 			});
 		});
 	</script>
