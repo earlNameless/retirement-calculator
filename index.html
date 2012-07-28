@@ -15,6 +15,65 @@
 </head>
 <body>
 	<script language="javascript">
+		function displayData(data, startYear, endYear) {
+			// convert data to be display in table
+			var dataTable = new Array();
+			for (year = startYear; year <= endYear; year++) {
+				dataTable[year - startYear] = [
+					year,
+					data[year].start.toFixed(2),
+					data[year].change.toFixed(2),
+					data[year].end.toFixed(2),
+				];
+			}
+			$( "#output" ).empty().append( "<table id='outputTable'/>" );
+			$( "#outputTable" ).dataTable( {
+				"aaData": dataTable,
+				"aoColumns": [
+					{ "sTitle": "Year" },
+					{ "sTitle": "Start" },
+					{ "sTitle": "Change" },
+					{ "sTitle": "End" },
+				],
+			} );
+		}
+
+		function computeRetirement(data, yearCurrent, yearRetirement, yearDeath, rate_inflation, rate_capital, cost_retirement, cost_death) {
+			// do math about retirement
+			for (year = yearDeath; year >= yearRetirement; year--) {
+				var total_inflation_growth = Math.pow(1.0 + rate_inflation, year - yearCurrent);
+				var yearSpending = cost_retirement * total_inflation_growth;
+				var endOfYear = year == yearDeath ?
+					cost_death * total_inflation_growth :
+					data[year + 1].start / (1.0 + rate_capital);
+				var startOfYear = endOfYear + yearSpending;
+
+				data[year] = {
+					change: -yearSpending,
+					end: endOfYear,
+					start: startOfYear,
+				};
+			}
+			return data;
+		}
+
+		function computeWork(data, yearCurrent, yearRetirement, rate_salary, rate_capital, salary, salary_contribution) {
+			// do math about work
+			for (year = yearRetirement - 1; year >= yearCurrent; year--) {
+				var total_salary_growth = Math.pow(1.0 + rate_salary, year - yearCurrent);
+				var contribution = salary * total_salary_growth * salary_contribution;
+				var endOfYear =	data[year + 1].start / (1.0 + rate_capital);
+				var startOfYear = endOfYear - contribution;
+
+				data[year] = {
+					change: contribution,
+					end: endOfYear,
+					start: startOfYear,
+				};
+			}
+			return data;
+		}
+
 		$(document).ready(function() {
 			jQuery.validator.addMethod("integer", function(value, element) {
 				return this.optional(element) || /^[0-9]+$/.test(value);
@@ -42,57 +101,18 @@
 					var yearDeath = yearCurrent + (ageDeath - ageCurrent);
 
 					var data = new Array();
+					data = computeRetirement(
+						data,
+						yearCurrent, yearRetirement, yearDeath,
+						rate_inflation, rate_capital,
+						cost_retirement, cost_death);
+					data = computeWork(
+						data,
+						yearCurrent, yearRetirement,
+						rate_salary, rate_capital,
+						salary, salary_contribution);
 
-					// do math about retirement
-					for (year = yearDeath; year >= yearRetirement; year--) {
-						var total_inflation_growth = Math.pow(1.0 + rate_inflation, year - yearCurrent);
-						var yearSpending = cost_retirement * total_inflation_growth;
-						var endOfYear = year == yearDeath ?
-							cost_death * total_inflation_growth :
-							data[year + 1].start / (1.0 + rate_capital);
-						var startOfYear = endOfYear + yearSpending;
-
-						data[year] = {
-							change: -yearSpending,
-							end: endOfYear,
-							start: startOfYear,
-						};
-					}
-
-					// do math about work
-					for (year = yearRetirement - 1; year >= yearCurrent; year--) {
-						var total_salary_growth = Math.pow(1.0 + rate_salary, year - yearCurrent);
-						var contribution = salary * total_salary_growth * salary_contribution;
-						var endOfYear =	data[year + 1].start / (1.0 + rate_capital);
-						var startOfYear = endOfYear - contribution;
-
-						data[year] = {
-							change: contribution,
-							end: endOfYear,
-							start: startOfYear,
-						};
-					}
-
-					// convert data to be display in table
-					var dataTable = new Array();
-					for (year = yearCurrent; year <= yearDeath; year++) {
-						dataTable[year - yearCurrent] = [
-							year,
-							data[year].start.toFixed(2),
-							data[year].change.toFixed(2),
-							data[year].end.toFixed(2),
-						];
-					}
-					$( "#output" ).empty().append( "<table id='outputTable'/>" );
-					$( "#outputTable" ).dataTable( {
-						"aaData": dataTable,
-						"aoColumns": [
-							{ "sTitle": "Year" },
-							{ "sTitle": "Start" },
-							{ "sTitle": "Change" },
-							{ "sTitle": "End" },
-						],
-					} );
+					displayData(data, yearCurrent, yearDeath);
 				},
 			});
 		});
