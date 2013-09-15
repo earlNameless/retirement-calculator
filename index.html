@@ -8,7 +8,8 @@
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
 	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js"></script>
 	<script src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.1/jquery.dataTables.min.js"></script>
-	<script type="text/javascript" src="http://jzaefferer.github.com/jquery-validation/jquery.validate.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.11.1/jquery.validate.min.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/flot/0.8.1/jquery.flot.min.js"></script>
 
 	<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/themes/base/jquery-ui.css" type="text/css"></link>
 	<link rel="stylesheet" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.1/css/jquery.dataTables.css" type="text/css"></link>
@@ -18,7 +19,8 @@
 		function displayData(data, startYear, endYear) {
 			"use strict";
 			var year,
-			    dataTable = [];
+			    dataTable = [],
+			    dataGraph = [];
 			for (year = startYear; year <= endYear; year += 1) {
 				dataTable[year - startYear] = [
 					year,
@@ -26,8 +28,12 @@
 					data[year].change.toFixed(2),
 					data[year].end.toFixed(2)
 				];
+				dataGraph[year] = [
+					year,
+					data[year].start
+				];
 			}
-			$("#output").empty().append("<table id='outputTable'/>");
+			$("#tab-table").empty().append("<table id='outputTable'/>");
 			$("#outputTable").dataTable({
 				"aaData": dataTable,
 				"aoColumns": [
@@ -37,6 +43,11 @@
 					{ "sTitle": "End" }
 				]
 			});
+			$("#tab-graph").empty().append("<div id='outputGraph' style='width:100%;height:500px'></div>");
+			// we have to select the graph tab because canvas has to be shown to draw on it
+			// TODO: get the tab based on name
+			//$("#tabs").tabs("select", 2);
+			$.plot("#outputGraph", [ dataGraph ]);
 		}
 
 		function computeRetirement(data, yearCurrent, yearRetirement, yearDeath, rate_inflation, rate_capital, cost_retirement, cost_death) {
@@ -77,6 +88,9 @@
 
 		$(document).ready(function () {
 			"use strict";
+			
+			// TODO: not available in this version of jquery ui
+			//$("#tabs").tabs( { heightStyle: "auto" });
 
 			jQuery.validator.addMethod("integer", function (value, element) {
 				return this.optional(element) || /^[0-9]+$/.test(value);
@@ -130,55 +144,64 @@
 			});
 		});
 	</script>
-	<div id="inputs">
-		<form id="processForm"><fieldset>
-		<p>
-			<label for="age_current">Current Age:</label>
-			<input type="text" name="age_current" id="age_current" value="37" class="required number integer"/>
-		</p>
-		<p>
-			<label for="age_retirement">Retirement Age:</label>
-			<input type="text" name="age_retirement" id="age_retirement" value="63" class="required number integer"/>
-		</p>
-		<p>
-			<label for="age_death">Death Age:</label>
-			<input type="text" name="age_death" id="age_death" value="78" class="required number integer"/>
-		</p>
-		<p>
-			<label for="cost_retirement_month">Spending per month during retirement (today's money):</label>
-			<input type="text" name="cost_retirement_month" id="cost_retirement_month" value="4000.00" class="required number"/>
-		</p>
-		<p>
-			<label for="cost_death">Left at death (today's money):</label>
-			<input type="text" name="cost_death" id="cost_death" value="20000.00" class="required number"/>
-		</p>
-		<p>
-			<label for="rate_inflation">Inflation rate, %:</label>
-			<input type="text" name="rate_inflation" id="rate_inflation" value="4.4" class="requird number"/>
-		</p>
-		<p>
-			<label for="rate_capital">Capital growth rate, %:</label>
-			<input type="text" name="rate_capital" id="rate_capital" value="6.8" class="required number"/>
-		</p>
-		<p>
-			<label>Salary (today's money):</label>
-			<input type="text" name="salary" id="salary" value="50000" class="required number"/>
-		</p>
-		<p>
-			<label>Salary growth rate, %:</label>
-			<input type="text" name="rate_salary" id="rate_salary" value="4.4" class="required number"/>
-		</p>
-		<p>
-			<label>Contribution, %:</label>
-			<input type="text" name="rate_contribution" id="rate_contribution" value="6.8" class="required number"/>
-		</p>
-		<p>
-			<button type="submit">Process</button>
-			<!--<input type="submit" id="process" value="Process"/>-->
-		</p>
-		</fieldset></form>
-	</div>
-	<div id="output">
+	<div id="tabs" height="100%" width="100%">
+		<ul>
+			<li><a href="#tab-inputs">Inputs</a></li>
+			<li><a href="#tab-table">Outputs - Table</a></li>
+			<li><a href="#tab-graph">Outputs - Graph</a></li>
+		</ul>	
+		<div id="tab-inputs">
+			<form id="processForm"><fieldset>
+			<p>
+				<label for="age_current">Current Age:</label>
+				<input type="text" name="age_current" id="age_current" value="37" class="required number integer"/>
+			</p>
+			<p>
+				<label for="age_retirement">Retirement Age:</label>
+				<input type="text" name="age_retirement" id="age_retirement" value="63" class="required number integer"/>
+			</p>
+			<p>
+				<label for="age_death">Death Age:</label>
+				<input type="text" name="age_death" id="age_death" value="78" class="required number integer"/>
+			</p>
+			<p>
+				<label for="cost_retirement_month">Spending per month during retirement (today's money):</label>
+				<input type="text" name="cost_retirement_month" id="cost_retirement_month" value="4000.00" class="required number"/>
+			</p>
+			<p>
+				<label for="cost_death">Left at death (today's money):</label>
+				<input type="text" name="cost_death" id="cost_death" value="20000.00" class="required number"/>
+			</p>
+			<p>
+				<label for="rate_inflation">Inflation rate, %:</label>
+				<input type="text" name="rate_inflation" id="rate_inflation" value="4.4" class="requird number"/>
+			</p>
+			<p>
+				<label for="rate_capital">Capital growth rate, %:</label>
+				<input type="text" name="rate_capital" id="rate_capital" value="6.8" class="required number"/>
+			</p>
+			<p>
+				<label>Salary (today's money):</label>
+				<input type="text" name="salary" id="salary" value="50000" class="required number"/>
+			</p>
+			<p>
+				<label>Salary growth rate, %:</label>
+				<input type="text" name="rate_salary" id="rate_salary" value="4.4" class="required number"/>
+			</p>
+			<p>
+				<label>Contribution, %:</label>
+				<input type="text" name="rate_contribution" id="rate_contribution" value="6.8" class="required number"/>
+			</p>
+			<p>
+				<button type="submit">Process</button>
+				<!--<input type="submit" id="process" value="Process"/>-->
+			</p>
+			</fieldset></form>
+		</div>
+		<div id="tab-table">
+		</div>
+		<div id="tab-graph">
+		</div>
 	</div>
 </body>
 </html>
